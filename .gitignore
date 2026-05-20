@@ -1,0 +1,31 @@
+# 环境与密钥
+.env
+*.key
+config_local.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 工作目录（工具运行时生成的文件）
+workspace/*
+!workspace/.gitkeep
+
+# 评测结果
+tests/results/
+tests/*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Gradio
+flagged/
+gradio_cached_examples/

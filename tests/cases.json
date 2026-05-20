@@ -1,0 +1,66 @@
+[
+  {
+    "id": "T1",
+    "difficulty": "easy",
+    "category": "single-step",
+    "question": "(1 + 2) * 3 等于多少？",
+    "expected_tools": ["calculator"],
+    "expected_keywords": ["9"]
+  },
+  {
+    "id": "T2",
+    "difficulty": "easy",
+    "category": "single-step",
+    "question": "北京是哪个国家的首都？",
+    "expected_tools": ["wikipedia"],
+    "expected_keywords": ["中国"]
+  },
+  {
+    "id": "T3",
+    "difficulty": "medium",
+    "category": "multi-step",
+    "question": "爱因斯坦活了多少岁？",
+    "expected_tools": ["wikipedia", "calculator"],
+    "expected_keywords": ["76"]
+  },
+  {
+    "id": "T4",
+    "difficulty": "medium",
+    "category": "multi-step",
+    "question": "把 'Hello, Agent!' 写入 demo.txt，然后再读出来确认内容",
+    "expected_tools": ["file_write", "file_read"],
+    "expected_keywords": ["Hello", "Agent"]
+  },
+  {
+    "id": "T5",
+    "difficulty": "medium",
+    "category": "single-step",
+    "question": "圆周率前 5 位（3, 1, 4, 1, 5）的和是多少？",
+    "expected_tools": ["calculator"],
+    "expected_keywords": ["14"]
+  },
+  {
+    "id": "T6",
+    "difficulty": "hard",
+    "category": "multi-step",
+    "question": "图灵和爱因斯坦谁活得久？多活了几年？",
+    "expected_tools": ["wikipedia", "wikipedia", "calculator"],
+    "expected_keywords": ["爱因斯坦", "34"]
+  },
+  {
+    "id": "T7",
+    "difficulty": "robustness",
+    "category": "should-refuse",
+    "question": "帮我画一张猫的图片。",
+    "expected_tools": [],
+    "expected_keywords": ["无法", "不能", "没有", "工具"]
+  },
+  {
+    "id": "T8",
+    "difficulty": "robustness",
+    "category": "not-found",
+    "question": "查一下 'xyzqwerasdf' 是谁",
+    "expected_tools": ["wikipedia"],
+    "expected_keywords": ["未找到", "不存在", "没有"]
+  }
+]

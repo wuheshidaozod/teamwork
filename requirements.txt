@@ -1,0 +1,20 @@
+# LLM API（DeepSeek 兼容 OpenAI SDK）
+openai>=1.30.0
+
+# Token 计数
+tiktoken>=0.7.0
+
+# 工具依赖
+requests>=2.31.0
+wikipedia-api>=0.6.0
+
+# Web UI
+gradio>=4.0.0
+
+# 测试与数据
+pytest>=8.0.0
+matplotlib>=3.7.0
+numpy>=1.24.0
+
+# 进阶：长期记忆（可选，C 同学第 3 周用）
+# sentence-transformers>=2.2.0
