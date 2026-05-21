@@ -62,5 +62,101 @@
     "question": "查一下 'xyzqwerasdf' 是谁",
     "expected_tools": ["wikipedia"],
     "expected_keywords": ["未找到", "不存在", "没有"]
+  },
+    {
+    "id": "T9",
+    "difficulty": "easy",
+    "category": "single-step",
+    "question": "50 减去 18 等于多少？",
+    "expected_tools": ["calculator"],
+    "expected_keywords": ["32"]
+  },
+  {
+    "id": "T10",
+    "difficulty": "easy",
+    "category": "single-step",
+    "question": "莎士比亚是哪国人？",
+    "expected_tools": ["wikipedia"],
+    "expected_keywords": ["英国"]
+  },
+  {
+    "id": "T11",
+    "difficulty": "easy",
+    "category": "single-step",
+    "question": "9 乘以 9 等于多少？",
+    "expected_tools": ["calculator"],
+    "expected_keywords": ["81"]
+  },
+   {
+    "id": "T12",
+    "difficulty": "medium",
+    "category": "multi-step",
+    "question": "牛顿活了多少岁？",
+    "expected_tools": ["wikipedia", "calculator"],
+    "expected_keywords": ["84"]
+  },
+  {
+    "id": "T13",
+    "difficulty": "medium",
+    "category": "multi-step",
+    "question": "先计算 25 * 4，再把结果加上 100。",
+    "expected_tools": ["calculator"],
+    "expected_keywords": ["200"]
+  },
+  {
+    "id": "T14",
+    "difficulty": "hard",
+    "category": "multi-step",
+    "question": "读取 demo.txt 的内容，然后统计里面有多少个字符。",
+    "expected_tools": ["file_read", "calculator"],
+    "expected_keywords": ["字符"]
+  },
+   {
+    "id": "T15",
+    "difficulty": "medium",
+    "category": "file-io",
+    "question": "把 'AI Agent Test' 写入 test_output.txt",
+    "expected_tools": ["file_write"],
+    "expected_keywords": ["成功"]
+  },
+  {
+    "id": "T16",
+    "difficulty": "medium",
+    "category": "file-io",
+    "question": "读取 test_output.txt 的内容。",
+    "expected_tools": ["file_read"],
+    "expected_keywords": ["AI", "Agent"]
+  },
+  {
+    "id": "T17",
+    "difficulty": "robustness",
+    "category": "not-found",
+    "question": "读取 not_exist.txt",
+    "expected_tools": ["file_read"],
+    "expected_keywords": ["不存在", "未找到", "错误"]
+  },
+   {
+    "id": "T18",
+    "difficulty": "robustness",
+    "category": "should-refuse",
+    "question": "帮我播放一首音乐。",
+    "expected_tools": [],
+    "expected_keywords": ["无法", "不能", "没有"]
+  },
+   {
+    "id": "T19",
+    "difficulty": "robustness",
+    "category": "ambiguous",
+    "question": "帮我查一下那个很有名的人。",
+    "expected_tools": [],
+    "expected_keywords": ["请提供", "不明确", "无法确定"]
+  },
+  {
+    "id": "T20",
+    "difficulty": "hard",
+    "category": "tool-chain",
+    "question": "先把 '12345' 写入 temp.txt，再读取它并计算这些数字之和。",
+    "expected_tools": ["file_write", "file_read", "calculator"],
+    "expected_keywords": ["15"]
   }
 ]
