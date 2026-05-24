@@ -145,7 +145,7 @@ if __name__ == "__main__":
         for t in [CalculatorTool(), WikipediaTool(), FileReadTool(), FileWriteTool()]:
             _tools.register(t)
 
-        versions = ["v1", "v2", "v2_slim"]
+        versions = ["v1", "v2"]
         summaries = []
         for version in versions:
             output = args.output.replace(".csv", f"_{version}.csv")
