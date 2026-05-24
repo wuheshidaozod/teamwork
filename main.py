@@ -6,6 +6,7 @@
 """
 
 import sys
+import argparse
 
 from config import get_llm_client
 from agent import Agent
@@ -17,7 +18,7 @@ from tools.file_io import FileReadTool, FileWriteTool
 from memory.short_term import ShortTermMemory
 
 
-def make_agent() -> Agent:
+def make_agent(version: str = "v1") -> Agent:
     tools = ToolRegistry()
     tools.register(CalculatorTool())
     tools.register(WikipediaTool())
@@ -28,16 +29,20 @@ def make_agent() -> Agent:
         llm_client=get_llm_client(),
         tools=tools,
         memory=ShortTermMemory(),
-        system_prompt=build_system_prompt(tools),
+        system_prompt=build_system_prompt(tools, version=version),
     )
 
 
 def main():
-    agent = make_agent()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("question", nargs="*", help="要问的问题")
+    parser.add_argument("--version", default="v1", choices=["v1", "v2"], help="prompt 版本")
+    args = parser.parse_args()
 
-    if len(sys.argv) > 1:
-        # 命令行参数模式
-        question = " ".join(sys.argv[1:])
+    agent = make_agent(args.version)
+
+    if args.question:
+        question = " ".join(args.question)
         answer = agent.run(question)
         print(f"\n答案: {answer}")
         return
