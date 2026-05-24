@@ -129,6 +129,63 @@ if __name__ == "__main__":
     parser.add_argument("--cases", default="tests/cases.json")
     parser.add_argument("--output", default="tests/results/eval_result.csv")
     parser.add_argument("--prompt-version", default="v1")
+    parser.add_argument("--all", action="store_true", help="依次运行所有 prompt 版本并对比")
     args = parser.parse_args()
 
-    evaluate(args.cases, args.output, args.prompt_version)
+    if args.all:
+        import tiktoken
+        enc = tiktoken.get_encoding("cl100k_base")
+
+        from tools.registry import ToolRegistry
+        from tools.calculator import CalculatorTool
+        from tools.wikipedia import WikipediaTool
+        from tools.file_io import FileReadTool, FileWriteTool
+        from agent.prompt import build_system_prompt
+        _tools = ToolRegistry()
+        for t in [CalculatorTool(), WikipediaTool(), FileReadTool(), FileWriteTool()]:
+            _tools.register(t)
+
+        versions = ["v1", "v2", "v2_slim"]
+        summaries = []
+        for version in versions:
+            output = args.output.replace(".csv", f"_{version}.csv")
+            results = evaluate(args.cases, output, version)
+            total = len(results)
+            passed = sum(1 for r in results if r["passed"])
+            avg_iter = sum(r["iterations"] for r in results) / total if total else 0
+            avg_tokens = sum(r["tokens"] for r in results) / total if total else 0
+            avg_time = sum(r["elapsed_sec"] for r in results) / total if total else 0
+            sys_prompt = build_system_prompt(_tools, version)
+            sys_tokens = len(enc.encode(sys_prompt))
+            summaries.append({
+                "version": version,
+                "passed": passed,
+                "total": total,
+                "avg_iter": avg_iter,
+                "avg_tokens": avg_tokens,
+                "avg_time": avg_time,
+                "sys_tokens": sys_tokens,
+            })
+
+        print(f"\n{'=' * 70}")
+        print("📊 版本对比")
+        print(f"{'版本':<10} {'通过率':<16} {'平均轮数':<10} {'system prompt':<16} {'平均总tokens':<14} {'平均耗时'}")
+        print('-' * 70)
+        for s in summaries:
+            print(f"{s['version']:<10} "
+                  f"{s['passed']}/{s['total']} ({100*s['passed']/s['total']:.1f}%)     "
+                  f"{s['avg_iter']:<10.1f} "
+                  f"{s['sys_tokens']} tok{'':<8} "
+                  f"{s['avg_tokens']:<14.0f} "
+                  f"{s['avg_time']:.1f}s")
+        print()
+        v1_sys = summaries[0]["sys_tokens"]
+        for s in summaries[1:]:
+            diff = s["sys_tokens"] - v1_sys
+            token_diff = s["avg_tokens"] - summaries[0]["avg_tokens"]
+            print(f"{s['version']} vs v1: system prompt +{diff} tok，"
+                  f"平均总tokens {token_diff:+.0f}，"
+                  f"system prompt 贡献约 {diff * summaries[0]['avg_iter']:.0f} tok/题（{diff}×{summaries[0]['avg_iter']:.1f}轮）")
+        print('=' * 70)
+    else:
+        evaluate(args.cases, args.output, args.prompt_version)
