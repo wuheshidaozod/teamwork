@@ -4,6 +4,9 @@
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # 从 .env 文件加载环境变量
 
 # ===== LLM 配置 =====
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")

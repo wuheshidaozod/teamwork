@@ -1,6 +1,9 @@
 # LLM API（DeepSeek 兼容 OpenAI SDK）
 openai>=1.30.0
 
+# 从 .env 文件加载环境变量
+python-dotenv>=1.0.0
+
 # Token 计数
 tiktoken>=0.7.0
 
