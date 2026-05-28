@@ -28,6 +28,7 @@ MAX_CONTEXT_TOKENS = 6000  # 短期记忆 token 上限
 WORKSPACE_DIR = "./workspace"   # 文件工具的工作目录
 WIKIPEDIA_LANG = "zh"           # 维基百科默认语言
 WIKIPEDIA_TIMEOUT = 10          # 秒
+WIKIPEDIA_PROXY = os.environ.get("WIKIPEDIA_PROXY", "")  # 如 "http://127.0.0.1:10808"
 
 # ===== 调试 =====
 DEBUG = True                # True 时打印 ReAct 中间过程

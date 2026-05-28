@@ -8,17 +8,22 @@ import re
 from functools import lru_cache
 import requests
 from tools.base import Tool
-from config import WIKIPEDIA_TIMEOUT
+from config import WIKIPEDIA_TIMEOUT, WIKIPEDIA_PROXY
 
 _HEADERS = {
     "User-Agent": "MiniAgent/1.0 (Educational Project)"
 }
 
-# 代理列表，按优先级尝试
-_PROXIES_LIST = [
-    {"http": "http://127.0.0.1:10808", "https": "http://127.0.0.1:10808"},
-    None,  # 系统代理 / 直连
-]
+
+def _build_proxies_list():
+    """根据配置构建代理列表，未配置则只直连。"""
+    proxies = []
+    if WIKIPEDIA_PROXY:
+        proxies.append({"http": WIKIPEDIA_PROXY, "https": WIKIPEDIA_PROXY})
+    proxies.append(None)  # 直连兜底
+    return proxies
+
+_PROXIES_LIST = _build_proxies_list()
 
 
 def _get(url: str, params: dict) -> requests.Response | None:
