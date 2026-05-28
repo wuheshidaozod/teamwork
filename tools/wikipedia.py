@@ -5,6 +5,7 @@
 """
 
 import re
+import urllib.request
 from functools import lru_cache
 import requests
 from tools.base import Tool
@@ -16,11 +17,24 @@ _HEADERS = {
 
 
 def _build_proxies_list():
-    """根据配置构建代理列表，未配置则只直连。"""
+    """构建代理列表，优先级：.env 手动配置 → 系统(IE)代理 → 直连。"""
     proxies = []
+
+    # 1. 手动配置（.env 中的 WIKIPEDIA_PROXY）
     if WIKIPEDIA_PROXY:
         proxies.append({"http": WIKIPEDIA_PROXY, "https": WIKIPEDIA_PROXY})
-    proxies.append(None)  # 直连兜底
+
+    # 2. 自动读取系统（IE）代理
+    try:
+        sys_proxies = urllib.request.getproxies()
+        proxy_url = sys_proxies.get("https") or sys_proxies.get("http")
+        if proxy_url and {"http": proxy_url, "https": proxy_url} not in proxies:
+            proxies.append({"http": proxy_url, "https": proxy_url})
+    except Exception:
+        pass
+
+    # 3. 直连兜底
+    proxies.append(None)
     return proxies
 
 _PROXIES_LIST = _build_proxies_list()
