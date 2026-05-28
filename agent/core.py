@@ -9,9 +9,14 @@ ReAct 范式可行，本类将其拆分为可复用的面向对象设计。
 接口约定见 docs/INTERFACES.md §4。
 """
 
+import re
 from typing import Iterator
 
 from config import DEFAULT_MODEL, MAX_ITERATIONS, TEMPERATURE, DEBUG
+
+_THOUGHT_RE = re.compile(
+    r"Thought\s*:\s*(.+?)(?:\n(?:Action|Final Answer)|$)", re.DOTALL
+)
 from agent.parser import parse_action
 from tools.registry import ToolRegistry
 from memory.base import Memory
@@ -46,13 +51,15 @@ class Agent:
                  memory: Memory,
                  system_prompt: str,
                  model: str = DEFAULT_MODEL,
-                 max_iterations: int = MAX_ITERATIONS):
+                 max_iterations: int = MAX_ITERATIONS,
+                 debug: bool = None):
         self.llm = llm_client
         self.tools = tools
         self.memory = memory
         self.system_prompt = system_prompt
         self.model = model
         self.max_iterations = max_iterations
+        self.debug = DEBUG if debug is None else debug
 
         # 评测用：每次 run() 后由 D 的脚本读取
         self.last_iteration_count: int = 0
@@ -109,7 +116,7 @@ class Agent:
                 yield {"type": "error", "content": error_msg}
                 return
 
-            if DEBUG:
+            if self.debug:
                 print(f"\n--- 第 {step} 轮 · LLM 输出 ---\n{output}\n")
 
             self.last_trace.append({"step": step, "raw_output": output})
@@ -176,8 +183,5 @@ class Agent:
 
     @staticmethod
     def _extract_thought(output: str) -> str:
-        """从 LLM 输出中提取 Thought 内容（用于 UI 展示）。"""
-        import re
-        m = re.search(r"Thought\s*:\s*(.+?)(?:\n(?:Action|Final Answer)|$)",
-                      output, re.DOTALL)
+        m = _THOUGHT_RE.search(output)
         return m.group(1).strip() if m else ""

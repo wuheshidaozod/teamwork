@@ -17,6 +17,14 @@ LLM 输出经常"不老实"，必须容错处理：
 import re
 import json
 
+# 预编译正则，避免每次调用重新编译
+_FENCE_RE = re.compile(r"```(?:json)?\s*")
+_ACTION_RE = re.compile(
+    r"Action\s*:\s*(\{.*?\})(?=\n\s*(?:Observation|Thought|Final|$)|\Z)",
+    re.DOTALL,
+)
+_JSON_RE = re.compile(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", re.DOTALL)
+
 
 def parse_action(text: str) -> dict | None:
     """从 LLM 输出中提取 Action JSON。
@@ -31,27 +39,24 @@ def parse_action(text: str) -> dict | None:
         return None
 
     # 1) 剥 markdown 代码围栏
-    cleaned = re.sub(r"```(?:json)?\s*", "", text)
-    cleaned = cleaned.replace("```", "")
+    cleaned = _FENCE_RE.sub("", text).replace("```", "")
 
     # 2) 中文标点替换
     cleaned = (cleaned
                .replace("：", ":")
                .replace("，", ",")
-               .replace("\u201c", '"').replace("\u201d", '"')   # 中文双引号 " "
-               .replace("\u2018", "'").replace("\u2019", "'"))  # 中文单引号 ' '
+               .replace("“", '"').replace("”", '"')
+               .replace("‘", "'").replace("’", "'"))
 
     # 3) 优先匹配 "Action:" 后的 JSON
-    m = re.search(r"Action\s*:\s*(\{.*?\})(?=\n\s*(?:Observation|Thought|Final|$)|\Z)",
-                  cleaned, re.DOTALL)
+    m = _ACTION_RE.search(cleaned)
     if m:
-        candidate = m.group(1)
-        result = _try_parse(candidate)
+        result = _try_parse(m.group(1))
         if result:
             return result
 
     # 4) 兜底：找第一个看起来像 Action 的 JSON 对象
-    for m in re.finditer(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", cleaned, re.DOTALL):
+    for m in _JSON_RE.finditer(cleaned):
         result = _try_parse(m.group(0))
         if result:
             return result

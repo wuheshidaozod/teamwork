@@ -6,7 +6,9 @@
 使用方式：
     python tests/run_eval.py
     python tests/run_eval.py --prompt-version v2     # 对比不同 Prompt
-    python tests/run_eval.py --cases tests/cases.json
+    python tests/run_eval.py --all                   # v1 vs v2 对比
+    python tests/run_eval.py --workers 4             # 并发评测（默认 1）
+    python tests/run_eval.py --all --workers 4       # 并发 + 对比
 """
 
 import sys
@@ -15,6 +17,7 @@ import csv
 import time
 import argparse
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 让本文件可以直接运行
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -29,7 +32,7 @@ from tools.file_io import FileReadTool, FileWriteTool
 from memory.short_term import ShortTermMemory
 
 
-def make_agent(prompt_version: str = "v1") -> Agent:
+def make_agent(prompt_version: str = "v1", debug: bool = True) -> Agent:
     """初始化一个全功能 Agent"""
     tools = ToolRegistry()
     tools.register(CalculatorTool())
@@ -42,6 +45,7 @@ def make_agent(prompt_version: str = "v1") -> Agent:
         tools=tools,
         memory=ShortTermMemory(),
         system_prompt=build_system_prompt(tools, version=prompt_version),
+        debug=debug,
     )
 
 
@@ -50,52 +54,83 @@ def check_keywords(answer: str, keywords: list[str]) -> bool:
     return any(kw in answer for kw in keywords)
 
 
-def evaluate(cases_path: str, output_path: str, prompt_version: str = "v1"):
+def run_case(case: dict, prompt_version: str, debug: bool) -> dict:
+    """运行单个用例，返回结果字典。线程安全（每次新建 agent）。"""
+    agent = make_agent(prompt_version, debug=debug)
+    t0 = time.time()
+    try:
+        answer = agent.run(case["question"])
+        elapsed = time.time() - t0
+        passed = check_keywords(answer, case["expected_keywords"])
+        return {
+            "id": case["id"],
+            "difficulty": case["difficulty"],
+            "question": case["question"],
+            "answer": answer[:200],
+            "passed": passed,
+            "iterations": agent.last_iteration_count,
+            "tokens": agent.last_token_count,
+            "elapsed_sec": round(elapsed, 2),
+            "expected_tools": ",".join(case.get("expected_tools", [])),
+        }
+    except Exception as e:
+        elapsed = time.time() - t0
+        return {
+            "id": case["id"],
+            "difficulty": case["difficulty"],
+            "question": case["question"],
+            "answer": f"EXCEPTION: {e}",
+            "passed": False,
+            "iterations": agent.last_iteration_count,
+            "tokens": agent.last_token_count,
+            "elapsed_sec": round(elapsed, 2),
+            "expected_tools": ",".join(case.get("expected_tools", [])),
+        }
+
+
+def evaluate(cases_path: str, output_path: str, prompt_version: str = "v1",
+             workers: int = 1):
     cases = json.loads(Path(cases_path).read_text(encoding="utf-8"))
-    agent = make_agent(prompt_version)
+    concurrent = workers > 1
 
     print(f"\n{'=' * 70}")
-    print(f"开始评测 | Prompt: {prompt_version} | 共 {len(cases)} 个用例")
+    print(f"开始评测 | Prompt: {prompt_version} | 共 {len(cases)} 个用例"
+          + (f" | 并发 {workers} 线程" if concurrent else ""))
     print('=' * 70)
 
-    results = []
-    for case in cases:
-        print(f"\n[{case['id']}] {case['question']}")
-        t0 = time.time()
-        try:
-            answer = agent.run(case["question"])
-            elapsed = time.time() - t0
-            passed = check_keywords(answer, case["expected_keywords"])
-            results.append({
-                "id": case["id"],
-                "difficulty": case["difficulty"],
-                "question": case["question"],
-                "answer": answer[:200],   # 截断防止 CSV 太长
-                "passed": passed,
-                "iterations": agent.last_iteration_count,
-                "tokens": agent.last_token_count,
-                "elapsed_sec": round(elapsed, 2),
-                "expected_tools": ",".join(case.get("expected_tools", [])),
-            })
-            print(f"  {'✅ PASS' if passed else '❌ FAIL'} | "
-                  f"轮数 {agent.last_iteration_count} | "
-                  f"tokens {agent.last_token_count} | "
-                  f"{elapsed:.1f}s")
-            print(f"  答案: {answer[:100]}")
-        except Exception as e:
-            elapsed = time.time() - t0
-            results.append({
-                "id": case["id"],
-                "difficulty": case["difficulty"],
-                "question": case["question"],
-                "answer": f"EXCEPTION: {e}",
-                "passed": False,
-                "iterations": agent.last_iteration_count,
-                "tokens": agent.last_token_count,
-                "elapsed_sec": round(elapsed, 2),
-                "expected_tools": ",".join(case.get("expected_tools", [])),
-            })
-            print(f"  💥 异常: {e}")
+    # 保持原始顺序的结果容器
+    id_to_result: dict[str, dict] = {}
+
+    if concurrent:
+        # 并发模式：关闭 debug 输出，完成一个打印一行
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_case = {
+                executor.submit(run_case, case, prompt_version, False): case
+                for case in cases
+            }
+            for future in as_completed(future_to_case):
+                case = future_to_case[future]
+                result = future.result()
+                id_to_result[result["id"]] = result
+                status = "✅ PASS" if result["passed"] else "❌ FAIL"
+                print(f"  [{result['id']}] {status} | "
+                      f"轮数 {result['iterations']} | "
+                      f"tokens {result['tokens']} | "
+                      f"{result['elapsed_sec']}s | "
+                      f"{result['answer'][:60]}")
+    else:
+        # 串行模式：保留 debug 输出
+        for case in cases:
+            print(f"\n[{case['id']}] {case['question']}")
+            result = run_case(case, prompt_version, debug=True)
+            id_to_result[result["id"]] = result
+            status = "✅ PASS" if result["passed"] else "❌ FAIL"
+            print(f"  {status} | 轮数 {result['iterations']} | "
+                  f"tokens {result['tokens']} | {result['elapsed_sec']}s")
+            print(f"  答案: {result['answer'][:100]}")
+
+    # 按原始顺序排列
+    results = [id_to_result[case["id"]] for case in cases]
 
     # 输出 CSV
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -129,6 +164,8 @@ if __name__ == "__main__":
     parser.add_argument("--cases", default="tests/cases.json")
     parser.add_argument("--output", default="tests/results/eval_result.csv")
     parser.add_argument("--prompt-version", default="v1")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="并发线程数（默认 1，建议 4-8）")
     parser.add_argument("--all", action="store_true", help="依次运行所有 prompt 版本并对比")
     args = parser.parse_args()
 
@@ -136,11 +173,6 @@ if __name__ == "__main__":
         import tiktoken
         enc = tiktoken.get_encoding("cl100k_base")
 
-        from tools.registry import ToolRegistry
-        from tools.calculator import CalculatorTool
-        from tools.wikipedia import WikipediaTool
-        from tools.file_io import FileReadTool, FileWriteTool
-        from agent.prompt import build_system_prompt
         _tools = ToolRegistry()
         for t in [CalculatorTool(), WikipediaTool(), FileReadTool(), FileWriteTool()]:
             _tools.register(t)
@@ -149,7 +181,7 @@ if __name__ == "__main__":
         summaries = []
         for version in versions:
             output = args.output.replace(".csv", f"_{version}.csv")
-            results = evaluate(args.cases, output, version)
+            results = evaluate(args.cases, output, version, workers=args.workers)
             total = len(results)
             passed = sum(1 for r in results if r["passed"])
             avg_iter = sum(r["iterations"] for r in results) / total if total else 0
@@ -188,4 +220,4 @@ if __name__ == "__main__":
                   f"system prompt 贡献约 {diff * summaries[0]['avg_iter']:.0f} tok/题（{diff}×{summaries[0]['avg_iter']:.1f}轮）")
         print('=' * 70)
     else:
-        evaluate(args.cases, args.output, args.prompt_version)
+        evaluate(args.cases, args.output, args.prompt_version, workers=args.workers)

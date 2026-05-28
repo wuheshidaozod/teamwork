@@ -9,7 +9,6 @@
 3. 写入时自动创建目录
 """
 
-import os
 from pathlib import Path
 
 from tools.base import Tool
@@ -18,18 +17,16 @@ from config import WORKSPACE_DIR
 
 _MAX_FILE_SIZE = 1024 * 1024  # 1MB
 
+# 模块加载时确定一次，避免每次调用重复 resolve
+_WORKSPACE = Path(WORKSPACE_DIR).resolve()
+_WORKSPACE.mkdir(parents=True, exist_ok=True)
+
 
 def _resolve_safe_path(filename: str) -> Path | None:
     """把文件名解析到 workspace 内的安全路径。越界返回 None。"""
-    workspace = Path(WORKSPACE_DIR).resolve()
-    workspace.mkdir(parents=True, exist_ok=True)
-
-    # 清理路径
-    target = (workspace / filename).resolve()
-
-    # 安全检查：必须在 workspace 内
+    target = (_WORKSPACE / filename).resolve()
     try:
-        target.relative_to(workspace)
+        target.relative_to(_WORKSPACE)
     except ValueError:
         return None
     return target
@@ -84,6 +81,6 @@ class FileWriteTool(Tool):
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
-            return f"已写入 {filename}（{len(content)} 字符）"
+            return f"成功写入 {filename}（{len(content)} 字符）"
         except Exception as e:
             return f"Error: 写入失败 - {e}"

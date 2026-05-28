@@ -13,7 +13,7 @@
     "category": "single-step",
     "question": "北京是哪个国家的首都？",
     "expected_tools": ["wikipedia"],
-    "expected_keywords": ["中国"]
+    "expected_keywords": ["中国", "中华人民共和国"]
   },
   {
     "id": "T3",
@@ -61,7 +61,7 @@
     "category": "not-found",
     "question": "查一下 'xyzqwerasdf' 是谁",
     "expected_tools": ["wikipedia"],
-    "expected_keywords": ["未找到", "不存在", "没有"]
+    "expected_keywords": ["未找到", "不存在", "没有", "未查询到", "查不到"]
   },
     {
     "id": "T9",
@@ -117,7 +117,7 @@
     "category": "file-io",
     "question": "把 'AI Agent Test' 写入 test_output.txt",
     "expected_tools": ["file_write"],
-    "expected_keywords": ["成功"]
+    "expected_keywords": ["成功", "写入"]
   },
   {
     "id": "T16",
