@@ -29,3 +29,14 @@ tests/*.csv
 # Gradio
 flagged/
 gradio_cached_examples/
+
+# 实验报告与本地草稿（不纳入仓库）
+_report_rev*.md
+_report_rev*.docx
+_edit*.py
+_edit*_out.txt
+~$*.docx
+media/
+
+# Claude Code 本地配置
+.claude/

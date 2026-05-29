@@ -143,6 +143,8 @@ class Agent:
                              "请严格按 {\"tool\": \"...\", \"args\": {...}} 格式。")
                 self.memory.add("assistant", output)
                 self.memory.add("user", f"Observation: {error_obs}")
+                if self.debug:
+                    print(f"Observation: {error_obs}\n")
                 yield {"type": "observation", "content": error_obs}
                 continue
 
@@ -153,6 +155,8 @@ class Agent:
                    "content": f"{tool_name}({tool_args})"}
 
             observation = self.tools.call(tool_name, tool_args)
+            if self.debug:
+                print(f"Observation: {observation}\n")
             yield {"type": "observation", "content": observation}
 
             # ---- 写入历史 ----

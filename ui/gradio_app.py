@@ -73,11 +73,7 @@ def chat_fn(message, history):
 
 
 def build_ui():
-    """
-    TODO(C 第 3 周): 完整 UI 实现
-
-    参考骨架：
-
+    """构造 Gradio 聊天界面，流式展示 ReAct 思考过程。"""
     import gradio as gr
 
     demo = gr.ChatInterface(
@@ -90,15 +86,10 @@ def build_ui():
             "图灵和爱因斯坦谁活得更久？",
             "把 'Hello Agent' 写入 hello.txt 然后读出来。",
         ],
-        theme=gr.themes.Soft(),
     )
     return demo
-    """
-    raise NotImplementedError("待 C 同学第 3 周实现 Gradio UI")
 
 
 if __name__ == "__main__":
-    # demo = build_ui()
-    # demo.launch(server_name="0.0.0.0", server_port=7860)
-    print("[TODO C 第 3 周] Gradio UI 待实现")
-    print("可以先用 `python main.py` 测试命令行版本")
+    demo = build_ui()
+    demo.launch(server_name="0.0.0.0", server_port=7860)
